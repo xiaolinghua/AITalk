@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI热点追踪助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        accent: '#8b5cf6',
+                        neutral: '#1f2937',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .scrollbar-thin {
+                scrollbar-width: thin;
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 6px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                background: #c5c5c5;
+                border-radius: 10px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+                background: #a8a8a8;
+            }
+            .typing-indicator {
+                display: inline-flex;
+                align-items: center;
+            }
+            .typing-indicator span {
+                height: 8px;
+                width: 8px;
+                margin: 0 1px;
+                background-color: currentColor;
+                border-radius: 50%;
+                display: inline-block;
+                animation: typing-bounce 1.4s infinite ease-in-out both;
+            }
+            .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+            .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+            @keyframes typing-bounce {
+                0%, 80%, 100% { transform: scale(0); }
+                40% { transform: scale(1); }
+            }
+            .message-appear {
+                animation: fadeIn 0.3s ease-in-out;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen flex flex-col font-inter">
+    <!-- 导航栏 -->
+    <nav class="bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-10 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-primary flex items-center">
+                        <i class="fa fa-bolt mr-2 text-primary/80"></i>
+                        <span>AI热点追踪助手</span>
+                    </span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="config-toggle" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors duration-150 flex items-center">
+                        <i class="fa fa-cog mr-1"></i>
+                        <span class="hidden sm:inline">配置</span>
+                    </button>
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 transition-colors duration-150">
+                        <i class="fa fa-moon-o text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 聊天界面 -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
+                <div class="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-primary/5 to-primary/10">
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                        <i class="fa fa-comments-o text-primary mr-2"></i>
+                        智能对话
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">与AI助手进行自然流畅的对话</p>
+                </div>
+
+                <!-- 聊天消息区域 -->
+                <div id="chat-messages" class="flex-grow overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 scrollbar-thin bg-gray-50">
+                    <!-- 消息将通过JavaScript动态加载 -->
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="p-4 sm:p-6 border-t border-gray-100 bg-white">
+                    <div class="relative">
+                        <textarea id="user-message" placeholder="输入你的问题..." class="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 resize-none h-16 overflow-hidden" maxlength="2000"></textarea>
+                        <button id="send-message" class="absolute right-3 bottom-3 bg-primary hover:bg-primary/90 text-white p-2 rounded-full shadow-md transition-all duration-200 transform hover:scale-105">
+                            <i class="fa fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-2 flex justify-between">
+                        <span>支持Markdown语法</span>
+                        <span id="char-count">0/2000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分析结果面板 -->
+            <div class="lg:col-span-1 flex flex-col space-y-6">
+                <!-- 任务状态卡片 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover">
+                    <div class="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-secondary/5 to-secondary/10">
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                            <i class="fa fa-tasks text-secondary mr-2"></i>
+                            定时任务状态
+                        </h2>
+                    </div>
+                    <div class="p-4 sm:p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-sm text-gray-600">当前任务：</span>
+                            <span id="task-status" class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fa fa-check-circle mr-1"></i>运行中
+                            </span>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">关键词</label>
+                                <p id="current-keywords" class="text-sm text-gray-900 bg-gray-50 p-2 rounded">人工智能</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">分析方法</label>
+                                <p id="current-method" class="text-sm text-gray-900 bg-gray-50 p-2 rounded">摘要</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">执行间隔</label>
+                                <p id="current-interval" class="text-sm text-gray-900 bg-gray-50 p-2 rounded">1分钟</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">上次运行时间</label>
+                                <p id="last-run-time" class="text-sm text-gray-900 bg-gray-50 p-2 rounded">未运行</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-5">
+                            <button id="run-manual" class="w-full bg-secondary hover:bg-secondary/90 text-white px-4 py-2 rounded-lg transition-colors duration-150 flex items-center justify-center">
+                                <i class="fa fa-play mr-2"></i>
+                                立即运行分析
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近分析结果 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden flex-grow flex flex-col card-hover">
+                    <div class="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-accent/5 to-accent/10">
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                            <i class="fa fa-line-chart text-accent mr-2"></i>
+                            最近分析结果
+                        </h2>
+                    </div>
+                    <div id="results-container" class="flex-grow overflow-y-auto p-4 sm:p-6 space-y-4 scrollbar-thin">
+                        <!-- 结果将通过JavaScript动态加载 -->
+                        <div class="text-center text-gray-500 text-sm p-4">
+                            <i class="fa fa-clock-o text-gray-400 text-2xl mb-2"></i>
+                            <p>等待分析结果...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 配置模态框 -->
+    <div id="config-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">任务配置</h3>
+                    <button id="close-modal" class="text-gray-400 hover:text-gray-500">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+
+                <form id="config-form">
+                    <div class="mb-4">
+                        <label for="keywords" class="block text-sm font-medium text-gray-700 mb-1">追踪关键词</label>
+                        <input type="text" id="keywords" name="keywords" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="输入要追踪的关键词，用逗号分隔">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">分析方法</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="flex items-center justify-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
+                                <input type="radio" name="analysis_method" value="summary" class="mr-2" checked>
+                                <span class="text-sm">摘要</span>
+                            </label>
+                            <label class="flex items-center justify-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
+                                <input type="radio" name="analysis_method" value="trends" class="mr-2">
+                                <span class="text-sm">趋势</span>
+                            </label>
+                            <label class="flex items-center justify-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
+                                <input type="radio" name="analysis_method" value="detailed" class="mr-2">
+                                <span class="text-sm">详细分析</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="interval" class="block text-sm font-medium text-gray-700 mb-1">执行间隔 (分钟)</label>
+                        <input type="number" id="interval" name="interval" min="1" max="60" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" value="1">
+                        <p class="text-xs text-gray-500 mt-1">建议设置为1-60分钟之间</p>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="active" name="active" class="mr-2" checked>
+                            <span class="text-sm font-medium text-gray-700">启用定时任务</span>
+                        </label>
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-config" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-150">
+                            取消
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-md text-sm font-medium transition-colors duration-150">
+                            保存配置
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-gray-500 text-sm">
+                <i class="fa fa-shield text-primary/70 mr-1"></i>
+                由DeepSeek提供技术支持 | 保护您的隐私与数据安全
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM元素
+        const chatMessages = document.getElementById('chat-messages');
+        const userMessage = document.getElementById('user-message');
+        const sendMessage = document.getElementById('send-message');
+        const charCount = document.getElementById('char-count');
+        const themeToggle = document.getElementById('theme-toggle');
+        const configToggle = document.getElementById('config-toggle');
+        const configModal = document.getElementById('config-modal');
+        const modalContent = document.getElementById('modal-content');
+        const closeModal = document.getElementById('close-modal');
+        const configForm = document.getElementById('config-form');
+        const runManual = document.getElementById('run-manual');
+        const resultsContainer = document.getElementById('results-container');
+        const taskStatus = document.getElementById('task-status');
+        const currentKeywords = document.getElementById('current-keywords');
+        const currentMethod = document.getElementById('current-method');
+        const currentInterval = document.getElementById('current-interval');
+        const lastRunTime = document.getElementById('last-run-time');
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMessages();
+            loadConfig();
+            loadResults();
+
+            // 监听输入框字符计数
+            userMessage.addEventListener('input', () => {
+                charCount.textContent = `${userMessage.value.length}/2000`;
+
+                // 根据输入长度调整按钮样式
+                if (userMessage.value.trim().length > 0) {
+                    sendMessage.classList.add('bg-primary');
+                    sendMessage.classList.remove('bg-gray-300');
+                } else {
+                    sendMessage.classList.add('bg-gray-300');
+                    sendMessage.classList.remove('bg-primary');
+                }
+            });
+
+            // 支持按Ctrl+Enter发送消息
+            userMessage.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    sendMessage.click();
+                }
+            });
+
+            // 自动调整输入框高度
+            userMessage.addEventListener('input', autoResizeTextarea);
+            autoResizeTextarea();
+
+            // 主题切换功能
+            themeToggle.addEventListener('click', toggleTheme);
+
+            // 配置模态框控制
+            configToggle.addEventListener('click', openConfigModal);
+            closeModal.addEventListener('click', closeConfigModal);
+            configModal.addEventListener('click', (e) => {
+                if (e.target === configModal) {
+                    closeConfigModal();
+                }
+            });
+
+            // 配置表单提交
+            configForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveConfig();
+            });
+
+            // 手动运行分析
+            runManual.addEventListener('click', manualAnalyze);
+
+            // 定期刷新结果
+            setInterval(() => {
+                loadResults();
+                loadConfig();
+            }, 30000);  // 每30秒刷新一次
+        });
+
+        // 自动调整文本框高度
+        function autoResizeTextarea() {
+            userMessage.style.height = 'auto';
+            userMessage.style.height = (userMessage.scrollHeight > 100 ? 100 : userMessage.scrollHeight) + 'px';
+        }
+
+        // 加载历史消息
+        function loadMessages() {
+            fetch('/api/messages')
+                .then(response => response.json())
+                .then(messages => {
+                    chatMessages.innerHTML = '';
+
+                    messages.forEach(msg => {
+                        appendMessage(msg.role, msg.content, true);
+                    });
+
+                    // 滚动到底部
+                    scrollToBottom();
+                });
+        }
+
+        // 发送消息并获取回复
+        function sendMessageToAI(content) {
+            // 显示用户消息
+            appendMessage('user', content);
+
+            // 显示"正在输入"状态
+            const typingIndicator = createTypingIndicator();
+            chatMessages.appendChild(typingIndicator);
+            scrollToBottom();
+
+            // 发送消息到API
+            fetch('/api/messages', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({content})
+            })
+            .then(response => response.json())
+            .then(messages => {
+                // 移除"正在输入"状态
+                chatMessages.removeChild(typingIndicator);
+
+                // 添加AI回复
+                messages.forEach(msg => {
+                    if (msg.role === 'assistant') {
+                        appendMessage(msg.role, msg.content);
+                    }
+                });
+
+                // 滚动到底部
+                scrollToBottom();
+            })
+            .catch(error => {
+                // 移除"正在输入"状态
+                chatMessages.removeChild(typingIndicator);
+
+                // 显示错误消息
+                appendMessage('assistant', '抱歉，发生了错误，请稍后再试。');
+                console.error('Error sending message:', error);
+            });
+        }
+
+        // 创建"正在输入"指示器
+        function createTypingIndicator() {
+            const div = document.createElement('div');
+            div.className = 'flex items-start';
+            div.innerHTML = `
+                <div class="flex-shrink-0 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                    <i class="fa fa-robot"></i>
+                </div>
+                <div class="ml-3 bg-gray-100 p-4 rounded-xl max-w-[80%]">
+                    <div class="typing-indicator text-gray-600">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+
+        // 添加消息到界面
+        function appendMessage(role, content, isInitial = false) {
+            const isUser = role === 'user';
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex items-start ${isUser ? 'justify-end' : ''} message-appear opacity-0`;
+
+            const iconClass = isUser ? 'bg-gray-200 text-gray-700' : 'bg-primary/20 text-primary';
+            const icon = isUser ? '<i class="fa fa-user"></i>' : '<i class="fa fa-robot"></i>';
+
+            const bubbleClass = isUser
+                ? 'bg-gradient-to-r from-primary to-primary/80 text-white rounded-xl rounded-br-none shadow-md'
+                : 'bg-white border border-gray-100 text-gray-800 rounded-xl rounded-bl-none shadow-sm';
+
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            // 处理换行和基本Markdown
+            const formattedContent = formatMessage(content);
+
+            messageDiv.innerHTML = `
+                ${isUser ? '' : `<div class="flex-shrink-0 h-10 w-10 rounded-full ${iconClass} flex items-center justify-center">${icon}</div>`}
+                <div class="${isUser ? 'ml-0 mr-3' : 'ml-3 mr-0'} ${bubbleClass} p-4 max-w-[85%] sm:max-w-[75%]">
+                    <div class="prose prose-sm max-w-none">
+                        ${formattedContent}
+                    </div>
+                    <div class="text-xs text-white/70 mt-1 flex justify-end">
+                        ${timestamp}
+                    </div>
+                </div>
+                ${isUser ? `<div class="flex-shrink-0 h-10 w-10 rounded-full ${iconClass} flex items-center justify-center">${icon}</div>` : ''}
+            `;
+
+            chatMessages.appendChild(messageDiv);
+
+            // 如果不是初始加载的消息，添加动画
+            if (!isInitial) {
+                setTimeout(() => {
+                    messageDiv.style.opacity = '1';
+                }, 50);
+            } else {
+                messageDiv.style.opacity = '1';
+            }
+        }
+
+        // 处理消息格式（支持简单的Markdown）
+        function formatMessage(content) {
+            // 替换换行
+            let formatted = content.replace(/\n/g, '<br>');
+
+            // 替换粗体
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // 替换斜体
+            formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // 替换链接
+            formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-primary hover:underline">$1</a>');
+
+            return formatted;
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 发送消息按钮点击事件
+        sendMessage.addEventListener('click', () => {
+            const message = userMessage.value.trim();
+            if (message) {
+                sendMessageToAI(message);
+                userMessage.value = '';
+                userMessage.style.height = 'auto';
+                charCount.textContent = '0/2000';
+                sendMessage.classList.add('bg-gray-300');
+                sendMessage.classList.remove('bg-primary');
+            }
+        });
+
+        // 主题切换功能
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+
+            themeToggle.innerHTML = isDark
+                ? '<i class="fa fa-sun-o text-yellow-500"></i>'
+                : '<i class="fa fa-moon-o text-gray-600"></i>';
+
+            // 深色模式样式切换逻辑
+            // 这里可以根据需要添加更多样式调整
+        }
+
+        // 打开配置模态框
+        function openConfigModal() {
+            loadConfigForEdit();
+            configModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        // 关闭配置模态框
+                // 关闭配置模态框
+        function closeConfigModal() {
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                configModal.classList.add('hidden');
+            }, 300);
+        }
+
+        // 加载配置
+        function loadConfig() {
+            fetch('/api/config')
+                .then(response => response.json())
+                .then(config => {
+                    // 更新任务状态显示
+                    currentKeywords.textContent = config.keywords;
+
+                    // 转换分析方法为中文显示
+                    const methodMap = {
+                        "summary": "摘要",
+                        "trends": "趋势",
+                        "detailed": "详细分析"
+                    };
+                    currentMethod.textContent = methodMap[config.analysis_method] || config.analysis_method;
+
+                    currentInterval.textContent = `${config.interval}分钟`;
+
+                    // 更新上次运行时间
+                    if (config.last_run) {
+                        const date = new Date(config.last_run);
+                        lastRunTime.textContent = date.toLocaleString();
+                    } else {
+                        lastRunTime.textContent = "未运行";
+                    }
+
+                    // 更新任务状态
+                    taskStatus.innerHTML = config.active
+                        ? '<i class="fa fa-check-circle mr-1"></i>运行中'
+                        : '<i class="fa fa-pause-circle mr-1"></i>已暂停';
+                    taskStatus.className = config.active
+                        ? 'px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800'
+                        : 'px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+                })
+                .catch(error => {
+                    console.error('Error loading config:', error);
+                });
+        }
+
+        // 加载配置用于编辑
+        function loadConfigForEdit() {
+            fetch('/api/config')
+                .then(response => response.json())
+                .then(config => {
+                    document.getElementById('keywords').value = config.keywords;
+                    document.getElementById('interval').value = config.interval;
+                    document.getElementById('active').checked = config.active;
+
+                    // 设置分析方法单选按钮
+                    const analysisMethod = config.analysis_method || "summary";
+                    document.querySelector(`input[name="analysis_method"][value="${analysisMethod}"]`).checked = true;
+                })
+                .catch(error => {
+                    console.error('Error loading config for edit:', error);
+                });
+        }
+
+        // 保存配置
+        function saveConfig() {
+            const keywords = document.getElementById('keywords').value;
+            const interval = parseInt(document.getElementById('interval').value);
+            const active = document.getElementById('active').checked;
+
+            // 获取选中的分析方法
+            const analysisMethod = document.querySelector('input[name="analysis_method"]:checked').value;
+
+            // 验证输入
+            if (!keywords.trim()) {
+                alert('请输入关键词');
+                return;
+            }
+
+            if (isNaN(interval) || interval < 1 || interval > 60) {
+                alert('请输入1-60之间的间隔分钟数');
+                return;
+            }
+
+            // 发送配置到API
+            fetch('/api/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    keywords,
+                    analysis_method: analysisMethod,
+                    interval,
+                    active
+                })
+            })
+            .then(response => response.json())
+            .then(config => {
+                // 更新界面显示
+                loadConfig();
+
+                // 关闭模态框
+                closeConfigModal();
+
+                // 显示成功消息
+                showNotification('配置已保存');
+            })
+            .catch(error => {
+                console.error('Error saving config:', error);
+                showNotification('保存配置失败', 'error');
+            });
+        }
+
+        // 手动运行分析
+        function manualAnalyze() {
+            // 显示加载状态
+            runManual.disabled = true;
+            runManual.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>分析中...';
+
+            // 发送请求
+            fetch('/api/analyze', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(result => {
+                // 刷新结果
+                loadResults();
+
+                // 显示成功消息
+                showNotification('分析已完成');
+
+                // 恢复按钮状态
+                runManual.disabled = false;
+                runManual.innerHTML = '<i class="fa fa-play mr-2"></i>立即运行分析';
+            })
+            .catch(error => {
+                console.error('Error running manual analysis:', error);
+                showNotification('分析失败', 'error');
+
+                // 恢复按钮状态
+                runManual.disabled = false;
+                runManual.innerHTML = '<i class="fa fa-play mr-2"></i>立即运行分析';
+            });
+        }
+
+        // 加载分析结果
+        function loadResults() {
+            fetch('/api/results')
+                .then(response => response.json())
+                .then(results => {
+                    resultsContainer.innerHTML = '';
+
+                    if (results.length === 0) {
+                        resultsContainer.innerHTML = `
+                            <div class="text-center text-gray-500 text-sm p-4">
+                                <i class="fa fa-clock-o text-gray-400 text-2xl mb-2"></i>
+                                <p>等待分析结果...</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    results.forEach(result => {
+                        const resultCard = createResultCard(result);
+                        resultsContainer.appendChild(resultCard);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading results:', error);
+                    resultsContainer.innerHTML = `
+                        <div class="text-center text-gray-500 text-sm p-4">
+                            <i class="fa fa-exclamation-triangle text-red-400 text-2xl mb-2"></i>
+                            <p>加载结果失败</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // 创建结果卡片
+        function createResultCard(result) {
+            const div = document.createElement('div');
+            div.className = 'bg-white border border-gray-100 rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow duration-200';
+
+            const date = new Date(result.timestamp);
+            const formattedDate = date.toLocaleString();
+
+            // 提取摘要的前100个字符作为预览
+            const summaryPreview = result.summary.length > 100
+                ? result.summary.substring(0, 100) + '...'
+                : result.summary;
+
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="font-medium text-gray-900">热点分析结果</h3>
+                    <span class="text-xs text-gray-500">${formattedDate}</span>
+                </div>
+                <div class="text-sm text-gray-700 mb-3">
+                    ${summaryPreview}
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex space-x-1">
+                        <span class="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                            <i class="fa fa-bolt mr-1"></i>热点追踪
+                        </span>
+                    </div>
+                    <button class="text-xs text-primary hover:text-primary/80 flex items-center view-result" data-id="${result.id}">
+                        查看详情 <i class="fa fa-angle-right ml-1"></i>
+                    </button>
+                </div>
+            `;
+
+            // 添加查看详情按钮事件
+            const viewButton = div.querySelector('.view-result');
+            viewButton.addEventListener('click', () => {
+                showResultDetail(result);
+            });
+
+            return div;
+        }
+
+        // 显示结果详情
+        function showResultDetail(result) {
+            // 创建模态框
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col overflow-hidden transform transition-all duration-300 scale-95 opacity-0" id="result-modal-content">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-gray-900">热点分析详情</h3>
+                        <button class="close-result-modal text-gray-400 hover:text-gray-500">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="flex-grow overflow-y-auto p-6">
+                        <div class="mb-4">
+                            <h4 class="font-medium text-gray-900 mb-2">分析摘要</h4>
+                            <div class="text-sm text-gray-700 prose prose-sm max-w-none">
+                                ${formatMessage(result.summary)}
+                            </div>
+                        </div>
+
+                        ${result.structured_result.key_points
+                            ? `
+                            <div class="mb-4">
+                                <h4 class="font-medium text-gray-900 mb-2">关键要点</h4>
+                                <ul class="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                                    ${result.structured_result.key_points.map(point => `<li>${point}</li>`).join('')}
+                                </ul>
+                            </div>
+                            `
+                            : ''
+                        }
+
+                        ${result.structured_result.trends
+                            ? `
+                            <div class="mb-4">
+                                <h4 class="font-medium text-gray-900 mb-2">主要趋势</h4>
+                                <ul class="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                                    ${result.structured_result.trends.map(trend => `<li>${trend}</li>`).join('')}
+                                </ul>
+                            </div>
+                            `
+                            : ''
+                        }
+
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">分析时间</h4>
+                            <p class="text-sm text-gray-700">${new Date(result.timestamp).toLocaleString()}</p>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                        <button class="close-result-modal px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-md text-sm font-medium transition-colors duration-150">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // 添加到文档
+            document.body.appendChild(modal);
+
+            // 显示动画
+            setTimeout(() => {
+                const modalContent = modal.querySelector('#result-modal-content');
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            // 关闭模态框事件
+            const closeButtons = modal.querySelectorAll('.close-result-modal');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const modalContent = modal.querySelector('#result-modal-content');
+                    modalContent.classList.remove('scale-100', 'opacity-100');
+                    modalContent.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => {
+                        document.body.removeChild(modal);
+                    }, 300);
+                });
+            });
+
+            // 点击模态框背景关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    const modalContent = modal.querySelector('#result-modal-content');
+                    modalContent.classList.remove('scale-100', 'opacity-100');
+                    modalContent.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => {
+                        document.body.removeChild(modal);
+                    }, 300);
+                }
+            });
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'success') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full ${
+                type === 'success' ? 'bg-green-50 border-l-4 border-green-400 text-green-700' : 'bg-red-50 border-l-4 border-red-400 text-red-700'
+            }`;
+
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fa ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">${message}</p>
+                    </div>
+                    <button class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            // 添加到文档
+            document.body.appendChild(notification);
+
+            // 显示通知
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+                notification.classList.add('translate-x-0');
+            }, 10);
+
+            // 自动关闭
+            setTimeout(() => {
+                notification.classList.remove('translate-x-0');
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+
+            // 点击关闭按钮
+            const closeButton = notification.querySelector('button');
+            closeButton.addEventListener('click', () => {
+                notification.classList.remove('translate-x-0');
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            });
+        }
+    </script>
+</body>
+</html>
